@@ -5,11 +5,18 @@ import { useSupabaseClient } from '../composables/useSupabaseClient'
 const REMEMBER_MODE_KEY = 'auth-remember-mode'
 const SESSION_ACTIVE_KEY = 'auth-session-active'
 const AUTH_GUARD_TIMEOUT_MS = 1800
+const PROFILE_CACHE_TTL_MS = 30_000
 const ROLE_GUARD_DEBUG = false
 
 interface AuthProfile {
   role: 'admin' | 'worker'
   active: boolean
+}
+
+interface CachedProfileEntry {
+  userId: string
+  profile: AuthProfile
+  fetchedAt: number
 }
 
 function logRoleGuard(message: string, extra?: Record<string, unknown>): void {
@@ -142,6 +149,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const supabase = useSupabaseClient()
     const { waitForAuthBootstrap } = useAuthBootstrap()
     const nuxtApp = useNuxtApp()
+    const cachedProfile = useState<CachedProfileEntry | null>('auth-profile-cache', () => null)
 
     logRoleGuard('guard start', {
       route: to.fullPath,
@@ -169,16 +177,30 @@ export default defineNuxtRouteMiddleware(async (to) => {
       return
     }
 
-    const userResult = await withTimeout(
-      'auth-getUser',
+    const sessionResult = await withTimeout(
+      'auth-getSession',
       async () => {
-        return supabase.auth.getUser()
+        return supabase.auth.getSession()
       },
-      AUTH_GUARD_TIMEOUT_MS,
-      { data: { user: null }, error: null },
+      900,
+      { data: { session: null }, error: null },
     )
 
+    const sessionUser = sessionResult.data.session?.user ?? null
+    const userResult = sessionUser
+      ? { data: { user: sessionUser }, error: null }
+      : await withTimeout(
+        'auth-getUser',
+        async () => {
+          return supabase.auth.getUser()
+        },
+        AUTH_GUARD_TIMEOUT_MS,
+        { data: { user: null }, error: null },
+      )
+
     if (userResult.error || !userResult.data.user) {
+      cachedProfile.value = null
+
       if (isAdminRoute || isWorkerRoute) {
         if (nuxtApp.isHydrating || isStandaloneMode()) {
           hardRedirect('/login')
@@ -191,22 +213,41 @@ export default defineNuxtRouteMiddleware(async (to) => {
       return
     }
 
-    const profileResult = await withTimeout(
-      'profile-fetch',
-      async () => {
-        return supabase
-          .from('profiles')
-          .select('role, active')
-          .eq('id', userResult.data.user.id)
-          .maybeSingle<AuthProfile>()
-      },
-      AUTH_GUARD_TIMEOUT_MS,
-      { data: null, error: null },
+    const now = Date.now()
+    const canUseCachedProfile = Boolean(
+      cachedProfile.value
+      && cachedProfile.value.userId === userResult.data.user.id
+      && now - cachedProfile.value.fetchedAt < PROFILE_CACHE_TTL_MS,
     )
+
+    const profileResult = canUseCachedProfile
+      ? { data: cachedProfile.value?.profile ?? null, error: null }
+      : await withTimeout(
+        'profile-fetch',
+        async () => {
+          return supabase
+            .from('profiles')
+            .select('role, active')
+            .eq('id', userResult.data.user.id)
+            .maybeSingle<AuthProfile>()
+        },
+        AUTH_GUARD_TIMEOUT_MS,
+        { data: null, error: null },
+      )
 
     const profile = profileResult.data
 
+    if (!profileResult.error && profile) {
+      cachedProfile.value = {
+        userId: userResult.data.user.id,
+        profile,
+        fetchedAt: now,
+      }
+    }
+
     if (profileResult.error || !profile || !profile.active) {
+      cachedProfile.value = null
+
       void withTimeout('inactive-signout', async () => {
         await supabase.auth.signOut()
       }, 900, undefined)

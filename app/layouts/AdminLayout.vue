@@ -487,6 +487,17 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useSupabaseClient } from '../composables/useSupabaseClient'
 
+const ADMIN_HEADER_CACHE_TTL_MS = 120_000
+
+interface AdminHeaderCache {
+  profileId: string
+  fullName: string
+  profileEmail: string
+  greetingName: string
+  avatarUrl: string
+  fetchedAt: number
+}
+
 const emit = defineEmits<{
   signout: []
 }>()
@@ -499,6 +510,7 @@ const shellHeartbeat = useState<{ layout: 'admin' | 'worker' | null, path: strin
   path: '',
   at: 0,
 }))
+const adminHeaderCache = useState<AdminHeaderCache | null>('admin-layout-header-cache', () => null)
 const sidebarCollapsed = useState('admin-sidebar-collapsed', () => false)
 const sidebarScrollTop = useState('admin-sidebar-scroll-top', () => 0)
 const sidebarOpen = ref(false)
@@ -560,7 +572,7 @@ const markAdminShellHeartbeat = (reason: string) => {
   }
 
   // Signal that authenticated app shell is visibly mounted.
-  window.__APP_MOUNTED__ = true
+  ;(window as Window & { __APP_MOUNTED__?: boolean }).__APP_MOUNTED__ = true
   document.getElementById('__nuxt')?.setAttribute('data-app-mounted', '1')
 }
 
@@ -623,7 +635,7 @@ const ensureActiveSidebarItemVisible = () => {
   activeLink.scrollIntoView({
     block: 'nearest',
     inline: 'nearest',
-    behavior: 'smooth',
+    behavior: 'auto',
   })
 }
 
@@ -682,12 +694,24 @@ onMounted(async () => {
   scheduleLayoutViewportReset()
   void restoreSidebarScroll()
 
+  const cachedHeader = adminHeaderCache.value
+  const canUseCachedHeader = Boolean(cachedHeader && (Date.now() - cachedHeader.fetchedAt) < ADMIN_HEADER_CACHE_TTL_MS)
+
+  if (canUseCachedHeader && cachedHeader) {
+    fullName.value = cachedHeader.fullName
+    profileEmail.value = cachedHeader.profileEmail
+    greetingName.value = cachedHeader.greetingName
+    avatarUrl.value = cachedHeader.avatarUrl
+    return
+  }
+
   try {
     const profile = await getProfile()
-    fullName.value = profile.full_name.trim()
+    const normalizedFullName = profile.full_name.trim()
+    fullName.value = normalizedFullName
     profileEmail.value = profile.email
 
-    const firstName = profile.full_name.trim().split(' ')[0]
+    const firstName = normalizedFullName.split(' ')[0]
     greetingName.value = firstName || 'there'
 
     const { data: employee } = await supabase
@@ -697,6 +721,15 @@ onMounted(async () => {
       .maybeSingle<{ photo_url: string | null }>()
 
     avatarUrl.value = employee?.photo_url || ''
+
+    adminHeaderCache.value = {
+      profileId: profile.id,
+      fullName: normalizedFullName,
+      profileEmail: profile.email,
+      greetingName: greetingName.value,
+      avatarUrl: avatarUrl.value,
+      fetchedAt: Date.now(),
+    }
   } catch {
     greetingName.value = 'there'
   }
