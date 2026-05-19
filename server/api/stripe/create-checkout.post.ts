@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
 
   const stripeSecretKey = config.stripeSecretKey || process.env.STRIPE_SECRET_KEY || ''
-  const stripePriceId = config.stripePriceId || process.env.STRIPE_PRICE_ID || ''
+  const stripePriceId = process.env.STRIPE_PRICE_ID?.trim() || ''
   const appUrl = config.appUrl || process.env.APP_URL || ''
 
   if (!stripeSecretKey) {
@@ -61,9 +61,14 @@ export default defineEventHandler(async (event) => {
   if (!stripePriceId) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'STRIPE_PRICE_ID is not configured on the server.',
+      statusMessage: 'Stripe price configuration missing',
     })
   }
+
+  console.info('[stripe/create-checkout] price id config', {
+    hasPriceId: Boolean(stripePriceId),
+    priceIdPrefix: stripePriceId.slice(0, 12),
+  })
 
   if (!appUrl) {
     throw createError({
