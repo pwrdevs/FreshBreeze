@@ -486,7 +486,7 @@ async function onExportPdf(): Promise<void> {
 
   try {
     const { jsPDF } = await import('jspdf')
-    const logoDataUrl = await loadPublicImageAsDataUrl('/logo/logo_escrito_transparente.png')
+    const logoDataUrl = await loadPublicImageAsDataUrl('/logo/Logo_Escrito_Transparente.png')
     const pdf = new jsPDF('p', 'mm', 'a4')
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
@@ -706,7 +706,7 @@ async function onExportExcel(): Promise<void> {
       { width: 20 },
     ]
 
-    const logoDataUrl = await loadPublicImageAsDataUrl('/logo/logo_escrito_transparente.png')
+    const logoDataUrl = await loadPublicImageAsDataUrl('/logo/Logo_Escrito_Transparente.png')
     if (logoDataUrl) {
       const logoImageId = workbook.addImage({
         base64: logoDataUrl,

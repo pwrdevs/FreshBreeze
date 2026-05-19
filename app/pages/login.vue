@@ -12,7 +12,7 @@
           <div class="relative flex h-full items-center justify-center">
             <div class="flex w-full flex-col items-center justify-center text-center">
               <img
-                src="/logo/logo_escrito_transparente.png"
+                src="/logo/Logo_Escrito_Transparente.png"
                 alt="FreshBreeze"
                 class="h-auto w-full max-w-[460px] object-contain"
               />
@@ -25,7 +25,7 @@
         <article class="p-6 sm:p-8 text-left">
           <div class="mb-5 rounded-2xl border border-border/80 bg-primary-50/40 p-4 text-center lg:hidden">
             <img
-              src="/logo/logo_escrito_transparente.png"
+              src="/logo/Logo_Escrito_Transparente.png"
               alt="FreshBreeze"
               class="mx-auto h-auto w-full max-w-[260px] object-contain"
             />

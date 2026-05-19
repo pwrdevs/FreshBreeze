@@ -40,7 +40,7 @@
         <NuxtLink to="/worker/dashboard" class="relative z-10 flex items-center justify-center" aria-label="Go to dashboard">
           <img
             v-if="!isDesktopCollapsed"
-            src="/logo/logo_escrito_transparente.png"
+            src="/logo/Logo_Escrito_Transparente.png"
             alt="FreshBreeze"
             class="h-40 w-auto max-w-full object-contain"
           />
@@ -49,7 +49,7 @@
             class="flex h-24 w-24 items-center justify-center overflow-hidden"
           >
             <img
-              src="/logo/fb.png"
+              src="/logo/FB.png"
               alt="FreshBreeze FB"
               class="h-full w-full scale-125 object-contain"
             />

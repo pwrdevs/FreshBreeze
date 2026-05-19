@@ -14,7 +14,7 @@
       >
         <div class="flex flex-col items-center text-center">
           <img
-            src="/logo/logo_escrito_transparente.png"
+            src="/logo/Logo_Escrito_Transparente.png"
             alt="FreshBreeze"
             class="h-16 w-auto sm:h-20"
           >
