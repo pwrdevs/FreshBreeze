@@ -8,7 +8,6 @@
       <div>
         <p class="text-xs font-semibold uppercase tracking-wide text-primary-600">Configuration</p>
         <h2 class="mt-1 text-2xl font-semibold text-foreground">Account Settings</h2>
-        <p class="mt-2 max-w-2xl text-sm text-muted">Manage your profile photo, account details and preferences.</p>
       </div>
 
       <BaseFeedbackBanner
