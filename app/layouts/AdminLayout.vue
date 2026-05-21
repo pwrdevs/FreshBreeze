@@ -44,7 +44,7 @@
         <NuxtLink to="/admin" class="relative z-10 flex items-center justify-center" aria-label="Go to dashboard">
           <img
             v-if="!isDesktopCollapsed"
-            src="/logo/Logo_Escrito_Transparente.png"
+            src="/logo/logo-escrito-white.png"
             alt="FreshBreeze"
             class="h-40 w-auto max-w-full object-contain"
           />

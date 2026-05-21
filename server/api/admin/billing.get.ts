@@ -105,6 +105,7 @@ export default defineEventHandler(async (event) => {
   const supabaseUrl = config.public.supabaseUrl || config.supabaseUrl
   const supabaseServiceRoleKey = config.supabaseServiceRoleKey
   const stripeSecretKey = config.stripeSecretKey || process.env.STRIPE_SECRET_KEY || ''
+  const configuredStripePriceId = (config.stripePriceId || process.env.STRIPE_PRICE_ID || '').trim() || null
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     throw createError({
@@ -176,11 +177,30 @@ export default defineEventHandler(async (event) => {
   const now = new Date()
   let resolvedMonthlyAmount = Number(subscription.monthly_amount)
   let resolvedCurrency = subscription.currency
+  const effectiveStripePriceId = (subscription.stripe_price_id || configuredStripePriceId || '').trim() || null
 
-  if (stripeSecretKey && subscription.stripe_price_id) {
+  if (!subscription.stripe_price_id && configuredStripePriceId) {
+    try {
+      await adminClient
+        .schema('public')
+        .from('app_subscription')
+        .update({ stripe_price_id: configuredStripePriceId })
+        .eq('app_key', APP_KEY)
+
+      subscription = {
+        ...subscription,
+        stripe_price_id: configuredStripePriceId,
+      }
+    }
+    catch {
+      // Keep request resilient if persistence fails.
+    }
+  }
+
+  if (stripeSecretKey && effectiveStripePriceId) {
     try {
       const stripe = new Stripe(stripeSecretKey)
-      const price = await stripe.prices.retrieve(subscription.stripe_price_id)
+      const price = await stripe.prices.retrieve(effectiveStripePriceId)
 
       if (typeof price.unit_amount === 'number') {
         resolvedMonthlyAmount = Number((price.unit_amount / 100).toFixed(2))
@@ -201,6 +221,7 @@ export default defineEventHandler(async (event) => {
   return {
     subscription: {
       ...subscription,
+      stripe_price_id: effectiveStripePriceId,
       monthly_amount: resolvedMonthlyAmount,
       currency: resolvedCurrency,
     },
