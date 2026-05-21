@@ -13,6 +13,14 @@ interface AuthProfile {
   active: boolean
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return 'Unexpected Stripe checkout error.'
+}
+
 async function requireAdminUser(event: H3Event, adminClient: SupabaseClient): Promise<void> {
   const authorization = getHeader(event, 'authorization')
   const accessToken = authorization?.startsWith('Bearer ')
@@ -48,8 +56,17 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
 
   const stripeSecretKey = config.stripeSecretKey || process.env.STRIPE_SECRET_KEY || ''
-  const stripePriceId = process.env.STRIPE_PRICE_ID?.trim() || ''
+  const stripePriceId = config.stripePriceId?.trim() || process.env.STRIPE_PRICE_ID?.trim() || ''
   const appUrl = config.appUrl || process.env.APP_URL || ''
+
+  console.info('[stripe/create-checkout] env diagnostics', {
+    hasStripeSecretKey: Boolean(stripeSecretKey),
+    hasStripePriceId: Boolean(stripePriceId),
+    hasAppUrl: Boolean(appUrl),
+    runtimeConfigHasStripePriceId: Boolean(config.stripePriceId),
+    processEnvHasStripePriceId: Boolean(process.env.STRIPE_PRICE_ID),
+    priceId: stripePriceId || null,
+  })
 
   if (!stripeSecretKey) {
     throw createError({
@@ -67,7 +84,7 @@ export default defineEventHandler(async (event) => {
 
   console.info('[stripe/create-checkout] price id config', {
     hasPriceId: Boolean(stripePriceId),
-    priceIdPrefix: stripePriceId.slice(0, 12),
+    priceId: stripePriceId,
   })
 
   if (!appUrl) {
@@ -128,7 +145,42 @@ export default defineEventHandler(async (event) => {
     sessionParams.customer = subscription.stripe_customer_id
   }
 
-  const session = await stripe.checkout.sessions.create(sessionParams, idempotencyKey ? { idempotencyKey } : undefined)
+  console.info('[stripe/create-checkout] stripe request payload', {
+    mode: sessionParams.mode,
+    priceId: stripePriceId,
+    quantity: sessionParams.line_items?.[0]?.quantity ?? null,
+    hasCustomer: Boolean(sessionParams.customer),
+    customerId: sessionParams.customer ?? null,
+    successUrl: sessionParams.success_url,
+    cancelUrl: sessionParams.cancel_url,
+  })
+
+  let session: Stripe.Checkout.Session
+
+  try {
+    session = await stripe.checkout.sessions.create(sessionParams, idempotencyKey ? { idempotencyKey } : undefined)
+  }
+  catch (error: unknown) {
+    const stripeError = error instanceof Stripe.errors.StripeError ? error : null
+
+    console.error('[stripe/create-checkout] stripe error', {
+      message: getErrorMessage(error),
+      type: stripeError?.type ?? null,
+      code: stripeError?.code ?? null,
+      param: stripeError?.param ?? null,
+      statusCode: stripeError?.statusCode ?? null,
+      requestId: stripeError?.requestId ?? null,
+      declineCode: stripeError?.decline_code ?? null,
+      charge: stripeError?.charge ?? null,
+      docUrl: stripeError?.doc_url ?? null,
+      raw: stripeError?.raw ?? null,
+    })
+
+    throw createError({
+      statusCode: stripeError?.statusCode ?? 500,
+      statusMessage: getErrorMessage(error),
+    })
+  }
 
   if (!session.url) {
     throw createError({
