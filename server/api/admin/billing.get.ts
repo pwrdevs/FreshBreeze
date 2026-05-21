@@ -177,9 +177,9 @@ export default defineEventHandler(async (event) => {
   const now = new Date()
   let resolvedMonthlyAmount = Number(subscription.monthly_amount)
   let resolvedCurrency = subscription.currency
-  const effectiveStripePriceId = (subscription.stripe_price_id || configuredStripePriceId || '').trim() || null
+  const effectiveStripePriceId = (configuredStripePriceId || subscription.stripe_price_id || '').trim() || null
 
-  if (!subscription.stripe_price_id && configuredStripePriceId) {
+  if (configuredStripePriceId && subscription.stripe_price_id !== configuredStripePriceId) {
     try {
       await adminClient
         .schema('public')
