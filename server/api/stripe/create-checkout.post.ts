@@ -57,7 +57,15 @@ export default defineEventHandler(async (event) => {
 
   const stripeSecretKey = config.stripeSecretKey || process.env.STRIPE_SECRET_KEY || ''
   const stripePriceId = config.stripePriceId?.trim() || process.env.STRIPE_PRICE_ID?.trim() || ''
-  const appUrl = config.appUrl || process.env.APP_URL || ''
+  const requestOrigin = typeof event.node.req.headers.origin === 'string'
+    ? event.node.req.headers.origin.trim()
+    : ''
+  const appUrl = (
+    config.appUrl?.trim()
+    || process.env.APP_URL?.trim()
+    || requestOrigin
+    || 'https://freshbreeze.pwrdevs.com'
+  ).replace(/\/+$/, '')
 
   console.info('[stripe/create-checkout] env diagnostics', {
     hasStripeSecretKey: Boolean(stripeSecretKey),
@@ -66,6 +74,12 @@ export default defineEventHandler(async (event) => {
     runtimeConfigHasStripePriceId: Boolean(config.stripePriceId),
     processEnvHasStripePriceId: Boolean(process.env.STRIPE_PRICE_ID),
     priceId: stripePriceId || null,
+  })
+  console.info('[stripe/create-checkout] resolved app url', {
+    appUrl,
+    hasRuntimeAppUrl: Boolean(config.appUrl),
+    hasProcessEnvAppUrl: Boolean(process.env.APP_URL),
+    hasRequestOrigin: Boolean(requestOrigin),
   })
 
   if (!stripeSecretKey) {
@@ -86,13 +100,6 @@ export default defineEventHandler(async (event) => {
     hasPriceId: Boolean(stripePriceId),
     priceId: stripePriceId,
   })
-
-  if (!appUrl) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'APP_URL is not configured on the server.',
-    })
-  }
 
   // Read app_subscription row
   const supabaseUrl = config.supabaseUrl || process.env.NUXT_PUBLIC_SUPABASE_URL || ''
