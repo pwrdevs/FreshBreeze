@@ -167,6 +167,11 @@
           </div>
         </div>
 
+        <div class="border-b border-primary-100/80 px-6 py-6 sm:px-8 dark:border-white/10">
+          <h3 class="text-sm font-semibold text-foreground">System Info</h3>
+          <p class="mt-2 text-xs text-muted">Last updated: {{ appUpdatedLabel || 'Not available' }}</p>
+        </div>
+
         <div class="px-6 py-8 sm:px-8">
           <h3 class="mb-4 text-lg font-semibold text-foreground">Session</h3>
           <p class="mb-4 text-sm text-muted">Sign out from your account and return to the login page.</p>
@@ -215,6 +220,7 @@ interface PersistedFeedback {
 }
 
 const isDark = computed(() => isDarkMode.value)
+const runtimeConfig = useRuntimeConfig()
 
 const profileForm = reactive({
   full_name: '',
@@ -249,6 +255,29 @@ const passwordMismatch = computed(() => {
     passwordForm.confirmPassword &&
     passwordForm.newPassword !== passwordForm.confirmPassword,
   )
+})
+
+const appUpdatedLabel = computed(() => {
+  const rawValue = runtimeConfig.public.appUpdatedAt as string | undefined
+
+  if (!rawValue) {
+    return ''
+  }
+
+  const parsedDate = new Date(rawValue)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return ''
+  }
+
+  return parsedDate.toLocaleString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
 })
 
 onMounted(async () => {

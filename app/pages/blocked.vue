@@ -15,7 +15,7 @@
 
         <div class="mt-5 text-center">
           <img
-            src="/logo/Logo_Escrito_Transparente.png"
+            src="/logo/Logo_Escrito_rev1.png"
             alt="FreshBreeze"
             class="mx-auto h-10 w-auto sm:h-12"
           >

@@ -3,7 +3,7 @@
     <header class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
       <div>
         <img
-          src="/logo/Logo_Escrito_Transparente.png"
+          src="/logo/Logo_Escrito_rev1.png"
           alt="Fresh Breeze"
           class="h-14 w-auto object-contain"
         >

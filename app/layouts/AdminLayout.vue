@@ -44,7 +44,7 @@
         <NuxtLink to="/admin" class="relative z-10 flex items-center justify-center" aria-label="Go to dashboard">
           <img
             v-if="!isDesktopCollapsed"
-            src="/logo/Logo_Escrito_Transparente.png"
+            src="/logo/Logo_Escrito_rev1.png"
             alt="FreshBreeze"
             class="h-40 w-auto max-w-full object-contain"
           />
@@ -53,7 +53,7 @@
             class="flex h-24 w-24 items-center justify-center overflow-hidden"
           >
             <img
-              src="/logo/FB.png"
+              src="/logo/FB_rev1.png"
               alt="FreshBreeze FB"
               class="h-full w-full scale-125 object-contain"
             />
@@ -445,9 +445,6 @@
             <div class="min-w-0">
               <p class="text-xs font-medium uppercase tracking-[0.2em] text-muted">Welcome</p>
               <h1 class="truncate text-base font-semibold text-foreground">{{ fullName || greetingName }}! 😎 🚀</h1>
-              <p v-if="appUpdatedLabel" class="mt-0.5 truncate text-[10px] font-medium tracking-tight text-muted/80">
-                Updated {{ appUpdatedLabel }}
-              </p>
             </div>
           </div>
 
@@ -502,7 +499,6 @@ const emit = defineEmits<{
   signout: []
 }>()
 
-const runtimeConfig = useRuntimeConfig()
 const route = useRoute()
 const shellLayoutMode = useState<'mobile' | 'desktop'>('app-shell-layout-mode', () => 'mobile')
 const shellHeartbeat = useState<{ layout: 'admin' | 'worker' | null, path: string, at: number }>('app-shell-heartbeat', () => ({
@@ -534,29 +530,6 @@ const avatarInitial = computed(() => {
 })
 
 const isFullscreenMode = computed(() => route.query.fullscreen === '1')
-
-const appUpdatedLabel = computed(() => {
-  const rawValue = runtimeConfig.public.appUpdatedAt as string | undefined
-
-  if (!rawValue) {
-    return ''
-  }
-
-  const parsedDate = new Date(rawValue)
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return ''
-  }
-
-  return parsedDate.toLocaleString('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  })
-})
 
 const isDesktopCollapsed = computed(() => isDesktop.value && sidebarCollapsed.value)
 

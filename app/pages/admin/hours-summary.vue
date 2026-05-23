@@ -1419,7 +1419,7 @@ async function onExportExcel(): Promise<void> {
     worksheet.getRow(3).height = 21
     worksheet.getRow(4).height = 21
 
-    const logoResponse = await fetch('/logo/Logo_Escrito_Transparente.png')
+    const logoResponse = await fetch('/logo/Logo_Escrito_rev1.png')
     if (!logoResponse.ok) {
       throw new Error('Failed to load logo asset for Excel export.')
     }
